@@ -98,3 +98,17 @@ def modify_message(message_id: str, add_labels: list[str] | None = None, remove_
         "removeLabelIds": remove_labels or [],
     }
     return _gmail_request(f"messages/{message_id}/modify", method="POST", body=body)
+
+
+def send_message(to: str, subject: str, body_text: str, reply_to_message_id: str | None = None) -> dict:
+    from email.mime.text import MIMEText
+
+    msg = MIMEText(body_text)
+    msg["To"] = to
+    msg["Subject"] = subject
+    if reply_to_message_id:
+        msg["In-Reply-To"] = reply_to_message_id
+        msg["References"] = reply_to_message_id
+
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+    return _gmail_request("messages/send", method="POST", body={"raw": raw})

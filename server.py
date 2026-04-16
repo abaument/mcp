@@ -36,6 +36,29 @@ def mark_email_processed(email_id: str) -> dict:
     return {"email_id": email_id, "status": "marked_as_processed"}
 
 
+@mcp.tool()
+def send_email(to: str, subject: str, body: str) -> dict:
+    """Send an email (e.g. order acknowledgment, fallback when phone not found). Returns the sent message ID."""
+    result = gmail_client.send_message(to=to, subject=subject, body_text=body)
+    return {"message_id": result.get("id"), "status": "sent", "to": to}
+
+
+@mcp.tool()
+def extract_phone_from_email(email_body: str) -> dict:
+    """Extract phone number from an email body/signature. Returns the phone number if found."""
+    import re
+    patterns = [
+        r'(?:(?:\+|00)33[\s.-]?|0)[1-9](?:[\s.-]?\d{2}){4}',  # French
+        r'\+?\d{1,3}[\s.-]?\(?\d{1,4}\)?[\s.-]?\d{1,4}[\s.-]?\d{1,9}',  # International
+    ]
+    for pattern in patterns:
+        matches = re.findall(pattern, email_body)
+        if matches:
+            phone = re.sub(r'[\s.-]', '', matches[0])
+            return {"found": True, "phone": phone}
+    return {"found": False, "phone": None}
+
+
 # ──────────────────────────────────────────────
 # Client Tools
 # ──────────────────────────────────────────────
